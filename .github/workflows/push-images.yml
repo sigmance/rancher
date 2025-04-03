@@ -45,8 +45,6 @@ jobs:
           username: ${{ steps.registry_info.outputs.username }}
           password: ${{ steps.registry_info.outputs.password }}
       - name: Push server image
-        env:
-          REGISTRY: ${{ stesp.registry_info.outputs.url }}
         run: |
           image_id=$(docker load --input /tmp/rancher-${{ matrix.os }}-${{ env.ARCH }}.tar 2>&1 | grep "Loaded image" | awk '{print $NF}')
           if [ -z "$image_id" ]; then
