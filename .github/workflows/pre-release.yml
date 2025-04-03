@@ -52,42 +52,42 @@ jobs:
     uses: ./.github/workflows/build-agent-windows.yml
     with:
       registry: ${{ env.REGISTRY }}
-      registry-username-path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-      registry-password-path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+      registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
+      registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
   push-images:
     needs: [unit-tests, integration-tests]
     uses: ./.github/workflows/push-images.yml
     with:
       registry: ${{ env.REGISTRY }}
-      registry-username-path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-      registry-password-path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+      registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
+      registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
   merge-server-manifest:
     needs: [push-images]
     uses: ./.github/workflows/merge-server-manifest.yml
     with:
       registry: ${{ env.REGISTRY }}
-      registry-username-path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-      registry-password-path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+      registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
+      registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
   merge-agent-manifest:
     needs: [push-images, build-agent-windows]
     uses: ./.github/workflows/merge-agent-manifest.yml
     with:
       registry: ${{ env.REGISTRY }}
-      registry-username-path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-      registry-password-path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+      registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
+      registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
   build-installer:
     needs: [build-publish-chart, merge-server-manifest]
     uses: ./.github/workflows/build-installer.yml
     with:
       registry: ${{ env.REGISTRY }}
-      registry-username-path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-      registry-password-path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+      registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
+      registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
   merge-installer-manifest:
     needs: [build-installer]
     uses: ./.github/workflows/merge-installer-manifest.yml
     with:
       registry: ${{ env.REGISTRY }}
-      registry-username-path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-      registry-password-path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+      registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
+      registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
   create-images-files:
     uses: ./.github/workflows/create-images-files.yml

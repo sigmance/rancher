@@ -6,11 +6,11 @@ on:
         type: string
         description: "docker registry to push the image to"
         required: true
-      registry-username-path:
+      registry_username_path:
         type: string
         description: "registry username secret path"
         required: true
-      registry-password-path:
+      registry_password_path:
         type: string
         description: "registry password secret path"
         required: true
