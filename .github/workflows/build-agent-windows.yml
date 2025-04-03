@@ -36,9 +36,7 @@ jobs:
           username: ${{ steps.registry_info.outputs.username }}
           password: ${{ steps.registry_info.outputs.password }}
       - name: Build Windows Server Image
-        env:
-          REGISTRY: ${{ stesp.registry_info.outputs.url }}
         run: |
-          docker build -t ${{ env.REGISTRY }}/${{ github.repository_owner }}/rancher-agent:${{ env.TAG }}-windows-${{ matrix.version }} --build-arg VERSION=${{ env.TAG }} --build-arg SERVERCORE_VERSION=ltsc${{ matrix.version }} -f package/windows/Dockerfile.agent .
-          docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/rancher-agent:${{ env.TAG }}-windows-${{ matrix.version }}
+          docker build -t ${{ steps.registry_info.outputs.url }}/${{ github.repository_owner }}/rancher-agent:${{ env.TAG }}-windows-${{ matrix.version }} --build-arg VERSION=${{ env.TAG }} --build-arg SERVERCORE_VERSION=ltsc${{ matrix.version }} -f package/windows/Dockerfile.agent .
+          docker push ${{ steps.registry_info.outputs.url }}/${{ github.repository_owner }}/rancher-agent:${{ env.TAG }}-windows-${{ matrix.version }}
         shell: bash
