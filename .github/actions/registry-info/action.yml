@@ -1,0 +1,56 @@
+name: "Fetch registry info"
+description: "Fetch the registry url, username and password"
+inputs:
+  registry_type:
+    description: "registry type, 'dockerio' or 'staging'"
+    required: true
+    type: choice
+    options:
+      - "dockerio"
+      - "staging"
+outputs:
+  url:
+    description: "registry url"
+    value: ${{ steps.secrets.outputs.url }}
+  username:
+    description: "registry username"
+    value: ${{ steps.secrets.outputs.username }}
+  password:
+    description: "registry password"
+    value: ${{ steps.secrets.outputs.password }}
+runs:
+  using: "composite"
+  steps:
+    - name: Get registry info
+      id: registry
+      shell: bash
+      run: |
+        case ${{ inputs.registry_type }} in
+          dockerio)
+            echo "url='docker.io'" >> $GITHUB_OUTPUT
+            echo "username_path='secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username'" >> $GITHUB_OUTPUT
+            echo "username_password='secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password'" >> $GITHUB_OUTPUT
+            ;;
+          staging)
+            echo "url='stgregistry.suse.com'" >> $GITHUB_OUTPUT
+            echo "username_path='secret/data/github/repo/${{ github.repository }}/stage-registry-username/credentials token'" >> $GITHUB_OUTPUT
+            echo "username_password='secret/data/github/repo/${{ github.repository }}/stage-registry-password/credentials token'" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "error: invalid value" >&2
+            exit 1
+            ;;
+        esac
+    - name: Load Secrets from Vault
+      uses: rancher-eio/read-vault-secrets@main
+      with:
+        secrets: |
+          ${{ steps.registry.outputs.username_path }} | REGISTRY_USERNAME ;
+          ${{ steps.registry.outputs.password_path }} | REGISTRY_PASSWORD
+    - name: Output secrets
+      id: secrets
+      shell: bash
+      run: |
+        echo "url='${{ steps.registry.outputs.url }}'" >> $GITHUB_OUTPUT
+        echo "username='${{ env.REGISTRY_USERNAME }}'" >> $GITHUB_OUTPUT
+        echo "password='${{ env.REGISTRY_PASSWORD }}'" >> $GITHUB_OUTPUT
