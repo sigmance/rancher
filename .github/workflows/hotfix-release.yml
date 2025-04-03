@@ -48,9 +48,10 @@ jobs:
     needs: [build-agent]
     uses: ./.github/workflows/integration-tests.yml
   build-agent-windows:
-    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
-    container: registry.suse.com/bci/bci-base:latest
+    runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: build-agent-windows
         uses: ./.github/workflows/build-agent-windows.yml
         with:
@@ -59,9 +60,10 @@ jobs:
           registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
   push-images:
     needs: [unit-tests, integration-tests]
-    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
-    container: registry.suse.com/bci/bci-base:latest
+    runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: push-images
         uses: ./.github/workflows/push-images.yml
         with:
@@ -70,9 +72,10 @@ jobs:
           registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
   merge-server-manifest:
     needs: [push-images]
-    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
-    container: registry.suse.com/bci/bci-base:latest
+    runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: merge-server-manifest
         uses: ./.github/workflows/merge-server-manifest.yml
         with:
@@ -81,9 +84,10 @@ jobs:
           registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
   merge-agent-manifest:
     needs: [push-images, build-agent-windows]
-    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
-    container: registry.suse.com/bci/bci-base:latest
+    runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: merge-agent-manifest
         uses: ./.github/workflows/merge-agent-manifest.yml
         with:
@@ -92,9 +96,10 @@ jobs:
           registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
   build-installer:
     needs: [build-publish-chart, merge-server-manifest]
-    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
-    container: registry.suse.com/bci/bci-base:latest
+    runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: build-installer
         uses: ./.github/workflows/build-installer.yml
         with:
@@ -103,9 +108,10 @@ jobs:
           registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
   merge-installer-manifest:
     needs: [build-installer]
-    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
-    container: registry.suse.com/bci/bci-base:latest
+    runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: merge-installer-manifest
         uses: ./.github/workflows/merge-installer-manifest.yml
         with:
