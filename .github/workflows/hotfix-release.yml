@@ -55,10 +55,12 @@ jobs:
     with:
       registry_type: "staging"
   merge-server-manifest:
+    needs: [push-images]
     uses: ./.github/workflows/merge-server-manifest.yml
     with:
       registry_type: "staging"
   merge-agent-manifest:
+    needs: [push-images, build-agent-windows]
     uses: ./.github/workflows/merge-agent-manifest.yml
     with:
       registry_type: "staging"
