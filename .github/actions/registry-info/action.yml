@@ -28,13 +28,15 @@ runs:
         case ${{ inputs.registry_type }} in
           dockerio)
             echo "url='docker.io'" >> $GITHUB_OUTPUT
-            echo "username_path=secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username" >> $GITHUB_OUTPUT
-            echo "username_password=secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password" >> $GITHUB_OUTPUT
+
+            echo "USERNAME_SECRET_PATH=\"secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username\"" >> $GITHUB_ENV
+            echo "PASSWORD_SECRET_PATH=\"secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password\"" >> $GITHUB_ENV
             ;;
           staging)
             echo "url='stgregistry.suse.com'" >> $GITHUB_OUTPUT
-            echo "username_path=secret/data/github/repo/${{ github.repository }}/stage-registry-username/credentials token" >> $GITHUB_OUTPUT
-            echo "username_password=secret/data/github/repo/${{ github.repository }}/stage-registry-password/credentials token" >> $GITHUB_OUTPUT
+
+            echo "USERNAME_SECRET_PATH=\"secret/data/github/repo/${{ github.repository }}/stage-registry-username/credentials token\"" >> $GITHUB_ENV
+            echo "PASSWORD_SECRET_PATH\"=secret/data/github/repo/${{ github.repository }}/stage-registry-password/credentials token\"" >> $GITHUB_ENV
             ;;
           *)
             echo "error: invalid value" >&2
@@ -45,8 +47,8 @@ runs:
       uses: rancher-eio/read-vault-secrets@main
       with:
         secrets: |
-          ${{ steps.registry.outputs.username_path }} | REGISTRY_USERNAME ;
-          ${{ steps.registry.outputs.password_path }} | REGISTRY_PASSWORD
+          ${{ env.USERNAME_SECRET_PATH }} | REGISTRY_USERNAME ;
+          ${{ env.USERNAME_PASSWORD_PATH }} | REGISTRY_PASSWORD
     - name: Output secrets
       id: secrets
       shell: bash
