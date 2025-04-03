@@ -55,52 +55,22 @@ jobs:
     with:
       registry_type: "staging"
   merge-server-manifest:
-    needs: [push-images]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: merge-server-manifest
-        uses: ./.github/workflows/merge-server-manifest.yml
-        with:
-          registry: ${{ env.REGISTRY }}
-          registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-          registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+    uses: ./.github/workflows/merge-server-manifest.yml
+    with:
+      registry_type: "staging"
   merge-agent-manifest:
-    needs: [push-images, build-agent-windows]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: merge-agent-manifest
-        uses: ./.github/workflows/merge-agent-manifest.yml
-        with:
-          registry: ${{ env.REGISTRY }}
-          registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-          registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+    uses: ./.github/workflows/merge-agent-manifest.yml
+    with:
+      registry_type: "staging"
   build-installer:
     needs: [build-publish-chart, merge-server-manifest]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: build-installer
-        uses: ./.github/workflows/build-installer.yml
-        with:
-          registry: ${{ env.REGISTRY }}
-          registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-          registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+    uses: ./.github/workflows/build-installer.yml
+    with:
+      registry_type: "staging"
   merge-installer-manifest:
     needs: [build-installer]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: merge-installer-manifest
-        uses: ./.github/workflows/merge-installer-manifest.yml
-        with:
-          registry: ${{ env.REGISTRY }}
-          registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-          registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+    uses: ./.github/workflows/merge-installer-manifest.yml
+    with:
+      registry_type: "staging"
   create-images-files:
     uses: ./.github/workflows/create-images-files.yml

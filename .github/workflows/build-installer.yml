@@ -2,18 +2,13 @@ name: Build installer
 on:
   workflow_call:
     inputs:
-      registry:
-        type: string
+      registry_type:
         description: "docker registry to push the image to"
         required: true
-      registry_username_path:
-        type: string
-        description: "registry username secret path"
-        required: true
-      registry_password_path:
-        type: string
-        description: "registry password secret path"
-        required: true
+        type: choice
+        options:
+          - "dockerio"
+          - "staging"
 jobs:
   build-installer:
     strategy:
@@ -26,7 +21,6 @@ jobs:
       id-token: write
     env:
       ARCH: ${{ matrix.arch }}
-      REGISTRY: ${{ inputs.registry }}
     steps:
       - name: Environment variables
         shell: bash
@@ -45,18 +39,17 @@ jobs:
           images: ${{ github.repository_owner}}/rancher
           flavor: |
             latest=false
-      - name: Load Secrets from Vault
-        uses: rancher-eio/read-vault-secrets@main
+      - name: Get Registry Info
+        id: registry_info
+        uses: ./.github/actions/registry-info
         with:
-          secrets: |
-            ${{ inputs.registry_username_path }} | REGISTRY_USERNAME ;
-            ${{ inputs.registry_password_path }} | REGISTRY_PASSWORD ;
+          registry_type: ${{ inputs.registry_type }}
       - name: Docker Registry Login
         uses: docker/login-action@v3
         with:
-          username: ${{ env.REGISTRY_USERNAME }}
-          password: ${{ env.REGISTRY_PASSWORD }}
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ steps.registry_info.outputs.url }}
+          username: ${{ steps.registry_info.outputs.username }}
+          password: ${{ steps.registry_info.outputs.password }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -76,7 +69,7 @@ jobs:
             "ARCH=${{ matrix.arch }}"
             "RANCHER_TAG=${{ env.TAG }}"
             "RANCHER_REPO=${{ github.repository_owner }}"
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/system-agent-installer-rancher:${{ env.TAG }}-${{ env.ARCH }}
+          tags: ${{ steps.registry_info.outputs.url }}/${{ github.repository_owner }}/system-agent-installer-rancher:${{ env.TAG }}-${{ env.ARCH }}
           context: .
           platforms: "${{ matrix.os }}/${{ env.ARCH }}"
           file: ./package/Dockerfile.installer
