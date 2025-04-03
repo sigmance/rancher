@@ -49,6 +49,7 @@ jobs:
     uses: ./.github/workflows/integration-tests.yml
   build-agent-windows:
     runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
+    container: registry.suse.com/bci/bci-base:latest
     steps:
       - name: build-agent-windows
         uses: ./.github/workflows/build-agent-windows.yml
@@ -59,6 +60,7 @@ jobs:
   push-images:
     needs: [unit-tests, integration-tests]
     runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
+    container: registry.suse.com/bci/bci-base:latest
     steps:
       - name: push-images
         uses: ./.github/workflows/push-images.yml
@@ -69,6 +71,7 @@ jobs:
   merge-server-manifest:
     needs: [push-images]
     runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
+    container: registry.suse.com/bci/bci-base:latest
     steps:
       - name: merge-server-manifest
         uses: ./.github/workflows/merge-server-manifest.yml
@@ -79,6 +82,7 @@ jobs:
   merge-agent-manifest:
     needs: [push-images, build-agent-windows]
     runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
+    container: registry.suse.com/bci/bci-base:latest
     steps:
       - name: merge-agent-manifest
         uses: ./.github/workflows/merge-agent-manifest.yml
@@ -89,6 +93,7 @@ jobs:
   build-installer:
     needs: [build-publish-chart, merge-server-manifest]
     runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
+    container: registry.suse.com/bci/bci-base:latest
     steps:
       - name: build-installer
         uses: ./.github/workflows/build-installer.yml
@@ -99,6 +104,7 @@ jobs:
   merge-installer-manifest:
     needs: [build-installer]
     runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
+    container: registry.suse.com/bci/bci-base:latest
     steps:
       - name: merge-installer-manifest
         uses: ./.github/workflows/merge-installer-manifest.yml
