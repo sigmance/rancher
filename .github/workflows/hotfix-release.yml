@@ -51,16 +51,9 @@ jobs:
       registry_type: "staging"
   push-images:
     needs: [unit-tests, integration-tests]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: push-images
-        uses: ./.github/workflows/push-images.yml
-        with:
-          registry: ${{ env.REGISTRY }}
-          registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-          registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+    uses: ./.github/workflows/push-images.yml
+    with:
+      registry_type: "staging"
   merge-server-manifest:
     needs: [push-images]
     runs-on: ubuntu-latest
