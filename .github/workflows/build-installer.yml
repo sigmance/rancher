@@ -5,10 +5,7 @@ on:
       registry_type:
         description: "docker registry to push the image to"
         required: true
-        type: choice
-        options:
-          - "dockerio"
-          - "staging"
+        type: string
 jobs:
   build-installer:
     strategy:
