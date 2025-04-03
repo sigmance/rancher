@@ -8,8 +8,6 @@ env:
   REGISTRY: "stgregistry.suse.com"
   DOCKERIO_REGISTRY: "docker.io"
   AWS_DEFAULT_REGION: "us-east-1"
-  REGISTRY_USERNAME_SECRET_PATH: "secret/data/github/repo/${{ github.repository }}/stage-registry-username/credentials token"
-  REGISTRY_PASSWORD_SECRET_PATH: "secret/data/github/repo/${{ github.repository }}/stage-registry-password/credentials token"
 jobs:
   unit-tests:
     uses: ./.github/workflows/unit-test.yml
@@ -48,16 +46,9 @@ jobs:
     needs: [build-agent]
     uses: ./.github/workflows/integration-tests.yml
   build-agent-windows:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: build-agent-windows
-        uses: ./.github/workflows/build-agent-windows.yml
-        with:
-          registry: ${{ env.REGISTRY }}
-          registry_username_path: ${{ env.REGISTRY_USERNAME_SECRET_PATH }}
-          registry_password_path: ${{ env.REGISTRY_PASSWORD_SECRET_PATH }}
+    uses: ./.github/workflows/build-agent-windows.yml
+    with:
+      registry_type: "staging"
   push-images:
     needs: [unit-tests, integration-tests]
     runs-on: ubuntu-latest
