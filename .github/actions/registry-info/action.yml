@@ -21,38 +21,32 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Get registry info
-      id: registry
-      shell: bash
-      run: |
-        case ${{ inputs.registry_type }} in
-          dockerio)
-            echo "url='docker.io'" >> $GITHUB_OUTPUT
-
-            echo "USERNAME_SECRET_PATH=\"secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username\"" >> $GITHUB_ENV
-            echo "PASSWORD_SECRET_PATH=\"secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password\"" >> $GITHUB_ENV
-            ;;
-          staging)
-            echo "url='stgregistry.suse.com'" >> $GITHUB_OUTPUT
-
-            echo "USERNAME_SECRET_PATH=\"secret/data/github/repo/${{ github.repository }}/stage-registry-username/credentials token\"" >> $GITHUB_ENV
-            echo "PASSWORD_SECRET_PATH\"=secret/data/github/repo/${{ github.repository }}/stage-registry-password/credentials token\"" >> $GITHUB_ENV
-            ;;
-          *)
-            echo "error: invalid value" >&2
-            exit 1
-            ;;
-        esac
-    - name: Load Secrets from Vault
+    - name: Load Docker Hub Secrets from Vault
+      if: inputs.registry_type == "dockerio"
       uses: rancher-eio/read-vault-secrets@main
       with:
         secrets: |
-          ${{ env.USERNAME_SECRET_PATH }} | REGISTRY_USERNAME ;
-          ${{ env.USERNAME_PASSWORD_PATH }} | REGISTRY_PASSWORD
+          secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | REGISTRY_USERNAME ;
+          secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | REGISTRY_PASSWORD
+    - name: Export Docker Hub URL
+      if: inputs.registry_type == "dockerio"
+      shell: bash
+      run: echo "REGISTRY=docker.io" >> $GITHUB_ENV
+    - name: Load Staging Secrets from Vault
+      if: inputs.registry_type == "staging"
+      uses: rancher-eio/read-vault-secrets@main
+      with:
+        secrets: |
+          secret/data/github/repo/${{ github.repository }}/stage-registry-username/credentials token | REGISTRY_USERNAME ;
+          secret/data/github/repo/${{ github.repository }}/stage-registry-password/credentials token | REGISTRY_PASSWORD
+    - name: Export Staging URL
+      if: inputs.registry_type == "staging"
+      shell: bash
+      run: echo "REGISTRY=stgregistry.suse.com" >> $GITHUB_ENV
     - name: Output secrets
       id: secrets
       shell: bash
       run: |
-        echo "url=${{ steps.registry.outputs.url }}" >> $GITHUB_OUTPUT
+        echo "url=${{ env.REGISTRY }}" >> $GITHUB_OUTPUT
         echo "username=${{ env.REGISTRY_USERNAME }}" >> $GITHUB_OUTPUT
         echo "password=${{ env.REGISTRY_PASSWORD }}" >> $GITHUB_OUTPUT
