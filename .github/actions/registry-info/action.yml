@@ -22,25 +22,25 @@ runs:
   using: "composite"
   steps:
     - name: Load Docker Hub Secrets from Vault
-      if: inputs.registry_type == 'dockerio'
+      if: ${{ inputs.registry_type == 'dockerio' }}
       uses: rancher-eio/read-vault-secrets@main
       with:
         secrets: |
           secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | REGISTRY_USERNAME ;
           secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | REGISTRY_PASSWORD
     - name: Export Docker Hub URL
-      if: inputs.registry_type == 'dockerio'
+      if: ${{ inputs.registry_type == 'dockerio' }}
       shell: bash
       run: echo "REGISTRY=docker.io" >> $GITHUB_ENV
     - name: Load Staging Secrets from Vault
-      if: inputs.registry_type == 'staging'
+      if: ${{ inputs.registry_type == 'staging' }}
       uses: rancher-eio/read-vault-secrets@main
       with:
         secrets: |
           secret/data/github/repo/${{ github.repository }}/stage-registry-username/credentials token | REGISTRY_USERNAME ;
           secret/data/github/repo/${{ github.repository }}/stage-registry-password/credentials token | REGISTRY_PASSWORD
     - name: Export Staging URL
-      if: inputs.registry_type == 'staging'
+      if: ${{ inputs.registry_type == 'staging' }}
       shell: bash
       run: echo "REGISTRY=stgregistry.suse.com" >> $GITHUB_ENV
     - name: Output secrets
