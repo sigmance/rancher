@@ -7,6 +7,7 @@ import (
 	"github.com/rancher/rancher/pkg/auth/tokens/hashers"
 	clusterv3 "github.com/rancher/rancher/pkg/generated/norman/cluster.cattle.io/v3"
 	managementv3 "github.com/rancher/rancher/pkg/generated/norman/management.cattle.io/v3"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -61,8 +62,15 @@ func ClusterAuthSecretValue(clusterAuthSecret *corev1.Secret) string {
 
 // VerifyClusterAuthToken verifies that a provided secret key is valid for the
 // given clusterAuthToken and hashed value.
-func VerifyClusterAuthToken(secretKey string, clusterAuthToken *clusterv3.ClusterAuthToken, clusterAuthSecret *corev1.Secret) error {
+func VerifyClusterAuthToken(secretKey string,
+	clusterAuthToken *clusterv3.ClusterAuthToken,
+	clusterAuthSecret *corev1.Secret) error {
+	logrus.Warnf("ZZZ cluster-auth-token [%s], SECRET (%s)",
+		clusterAuthToken.Name, secretKey)
+
 	if !clusterAuthToken.Enabled {
+		logrus.Warnf("ZZZ cluster-auth-token [%s] disabled, FAIL",
+			clusterAuthToken.Name)
 		return fmt.Errorf("token is not enabled")
 	}
 
@@ -70,17 +78,35 @@ func VerifyClusterAuthToken(secretKey string, clusterAuthToken *clusterv3.Cluste
 	if expiresAt != "" {
 		expires, err := time.Parse(time.RFC3339, expiresAt)
 		if err != nil {
+			logrus.Warnf("ZZZ cluster-auth-token [%s] error (%s), FAIL",
+				clusterAuthToken.Name, err)
 			return err
 		}
 		if expires.Before(time.Now()) {
+			logrus.Warnf("ZZZ cluster-auth-token [%s] expired (%s), FAIL",
+				clusterAuthToken.Name, expiresAt)
 			return fmt.Errorf("auth expired at %s", expiresAt)
 		}
 	}
 
 	hashedValue := ClusterAuthSecretValue(clusterAuthSecret)
+
+	logrus.Warnf("ZZZ cluster-auth-token [%s], SECRET (%s) HASH (%s)",
+		clusterAuthToken.Name, secretKey, hashedValue)
+
 	hasher, err := hashers.GetHasherForHash(hashedValue)
 	if err != nil {
-		return fmt.Errorf("unable to get hasher for clusterAuthToken %s/%s, err: %w", clusterAuthToken.Name, clusterAuthToken.Namespace, err)
+		logrus.Warnf("ZZZ cluster-auth-token [%s], SECRET (%s) HASH (%s) error (%s) FAIL",
+			clusterAuthToken.Name, secretKey, hashedValue, err)
+
+		return fmt.Errorf("unable to get hasher for clusterAuthToken %s/%s, err: %w",
+			clusterAuthToken.Name, clusterAuthToken.Namespace, err)
 	}
-	return hasher.VerifyHash(hashedValue, secretKey)
+
+	err = hasher.VerifyHash(hashedValue, secretKey)
+	if err != nil {
+		logrus.Warnf("ZZZ cluster-auth-token [%s], SECRET (%s) HASH (%s) VERIFY error (%s) FAIL",
+			clusterAuthToken.Name, secretKey, hashedValue, err)
+	}
+	return err
 }

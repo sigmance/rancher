@@ -42,6 +42,9 @@ type tokenHandler struct {
 
 // Create is called when a given token is created, and is responsible for creating a ClusterAuthToken in a downstream cluster.
 func (h *tokenHandler) Create(token *managementv3.Token) (runtime.Object, error) {
+
+	logrus.Warnf("ZZZ token [%s] created, sync down to [%s]", token.Name, token.ClusterName)
+
 	_, err := h.clusterAuthTokenLister.Get(h.namespace, token.Name)
 	if !errors.IsNotFound(err) {
 		return h.Updated(token)
@@ -49,6 +52,8 @@ func (h *tokenHandler) Create(token *managementv3.Token) (runtime.Object, error)
 		// we can sync tokens which are hashed by copying the hash downstream
 		if token.Annotations[tokens.TokenHashed] != "true" {
 			// re-enqueue until the token has been hashed
+			logrus.Warnf("ZZZ token [%s] updated, sync down to [%s] REQUEUE UNHASHED", token.Name, token.ClusterName)
+
 			return token, fmt.Errorf("token [%s] has not been hashed yet, re-enqueing until has has completed", token.Name)
 		}
 		// token is hashed, we can safely attempt to sync downstream
@@ -72,6 +77,8 @@ func (h *tokenHandler) Create(token *managementv3.Token) (runtime.Object, error)
 	hasher := hashers.GetHasher()
 	hashedValue, err := hasher.CreateHash(token.Token)
 	if err != nil {
+		logrus.Warnf("ZZZ token [%s] updated, sync down to [%s] unable to hash", token.Name, token.ClusterName)
+
 		return nil, fmt.Errorf("unable to hash value for token [%s]: %w", token.Name, err)
 	}
 	return nil, h.createClusterAuthToken(token, hashedValue)
@@ -79,28 +86,42 @@ func (h *tokenHandler) Create(token *managementv3.Token) (runtime.Object, error)
 
 // createClusterAuthToken handles actions commonly taken to create a clusterAuthToken from a token.
 func (h *tokenHandler) createClusterAuthToken(token *managementv3.Token, hashedValue string) error {
+	logrus.Warnf("ZZZ token [%s] create cat/cas, sync down to [%s], hash [%s]", token.Name, token.ClusterName, hashedValue)
+
 	err := h.updateClusterUserAttribute(token)
 	if err != nil {
+		logrus.Warnf("ZZZ token [%s] create cat/cas, sync down to [%s] FAIL 1/ %s", token.Name, token.ClusterName, err)
+
 		return err
 	}
 
 	clusterAuthToken, err := common.NewClusterAuthToken(token)
 	if err != nil {
+		logrus.Warnf("ZZZ token [%s] create cat/cas, sync down to [%s] FAIL 2/ %s", token.Name, token.ClusterName, err)
+
 		return err
 	}
 	clusterAuthSecret, err := common.NewClusterAuthSecret(token, hashedValue)
 	if err != nil {
+		logrus.Warnf("ZZZ token [%s] create cat/cas, sync down to [%s] FAIL 3/ %s", token.Name, token.ClusterName, err)
+
 		return err
 	}
 
 	// Create the shadow token, and associated secret. Tear both down in case of trouble.
 	_, err = h.clusterAuthToken.Create(clusterAuthToken)
 	if err == nil {
+		logrus.Warnf("ZZZ token [%s] cat [%s] created OK", token.Name, clusterAuthToken.Name)
+
 		_, err = h.clusterSecret.Create(clusterAuthSecret)
 		if err == nil {
+			logrus.Warnf("ZZZ token [%s] cas [%s] created OK", token.Name, clusterAuthSecret.Name)
+
 			// full success
 			return nil
 		}
+
+		logrus.Warnf("ZZZ token [%s] create cat/cas, sync down to [%s] FAIL 4/ %s", token.Name, token.ClusterName, err)
 
 		// token create ok, secret create fail -> drop the incomplete token
 		// best effort at tear down, report issues, do not supercede original issue
@@ -109,27 +130,38 @@ func (h *tokenHandler) createClusterAuthToken(token *managementv3.Token, hashedV
 				token.Name, errd.Error())
 		}
 	}
+
+	logrus.Warnf("ZZZ token [%s] create cat/cas, sync down to [%s] FAIL 5/ %s", token.Name, token.ClusterName, err)
 	return err
 }
 
 // Updated is called when a token is updated, and is responsible for creating/updating the corresponding
 // ClusterAuthTokens in the downstream cluster.
 func (h *tokenHandler) Updated(token *managementv3.Token) (runtime.Object, error) {
+
+	logrus.Warnf("ZZZ token [%s] updated, sync down to [%s]", token.Name, token.ClusterName)
+
 	clusterAuthToken, err := h.clusterAuthTokenLister.Get(h.namespace, token.Name)
 	if errors.IsNotFound(err) {
 		return h.Create(token)
 	}
 	if err != nil {
+		logrus.Warnf("ZZZ token [%s] updated, sync down to [%s] FAIL 1/ %s", token.Name, token.ClusterName, err)
+
 		return nil, err
 	}
 
 	clusterAuthSecret, err := h.clusterSecretLister.Get(h.namespace, common.ClusterAuthSecretName(token.Name))
 	if err != nil {
+		logrus.Warnf("ZZZ token [%s] updated, sync down to [%s] FAIL 2/ %s", token.Name, token.ClusterName, err)
+
 		return nil, err
 	}
 
 	err = h.updateClusterUserAttribute(token)
 	if err != nil {
+		logrus.Warnf("ZZZ token [%s] updated, sync down to [%s] FAIL 3/ %s", token.Name, token.ClusterName, err)
+
 		return nil, err
 	}
 
@@ -161,6 +193,8 @@ func (h *tokenHandler) Updated(token *managementv3.Token) (runtime.Object, error
 	}
 
 	if reflect.DeepEqual(current, old) {
+		logrus.Warnf("ZZZ token [%s] updated, sync down to [%s] SKIP SAME", token.Name, token.ClusterName)
+
 		return nil, nil
 	}
 	clusterAuthToken.UserName = token.UserID
@@ -180,10 +214,16 @@ func (h *tokenHandler) Updated(token *managementv3.Token) (runtime.Object, error
 			_, err = h.clusterSecret.Create(clusterAuthSecret)
 		}
 	}
+
+	logrus.Warnf("ZZZ token [%s] updated, sync down to [%s] RES %v", token.Name, token.ClusterName, err)
+
 	return nil, err
 }
 
 func (h *tokenHandler) Remove(token *managementv3.Token) (runtime.Object, error) {
+
+	logrus.Warnf("ZZZ token [%s] removed, sync down to [%s]", token.Name, token.ClusterName)
+
 	tokens, err := h.tokenIndexer.ByIndex(tokenByUserAndClusterIndex, tokenUserClusterKey(token))
 	if err != nil && !errors.IsNotFound(err) {
 		return nil, err
@@ -213,14 +253,21 @@ func (h *tokenHandler) Remove(token *managementv3.Token) (runtime.Object, error)
 }
 
 func (h *tokenHandler) updateClusterUserAttribute(token *managementv3.Token) error {
+
+	logrus.Warnf("ZZZ token [%s] update cat/cas, sync down to [%s]", token.Name, token.ClusterName)
+
 	userID := token.UserID
 	user, err := h.userLister.Get("", userID)
 	if err != nil {
+		logrus.Warnf("ZZZ token [%s] update cat/cas, sync down to [%s] FAIL 1/ %s", token.Name, token.ClusterName, err)
+
 		return err
 	}
 
 	userAttribute, err := h.userAttributeLister.Get("", userID)
 	if err != nil {
+		logrus.Warnf("ZZZ token [%s] update cat/cas, sync down to [%s] FAIL 2/ %s", token.Name, token.ClusterName, err)
+
 		return err
 	}
 
@@ -251,6 +298,7 @@ func (h *tokenHandler) updateClusterUserAttribute(token *managementv3.Token) err
 		return err
 	}
 	if err != nil {
+		logrus.Warnf("ZZZ token [%s] update cat/cas, sync down to [%s] FAIL 3/ %s", token.Name, token.ClusterName, err)
 		return err
 	}
 
@@ -277,5 +325,7 @@ func (h *tokenHandler) updateClusterUserAttribute(token *managementv3.Token) err
 	clusterUserAttribute.NeedsRefresh = userAttribute.NeedsRefresh
 
 	_, err = h.clusterUserAttribute.Update(clusterUserAttribute)
+
+	logrus.Warnf("ZZZ token [%s] update cat/cas, sync down to [%s] RES %v", token.Name, token.ClusterName, err)
 	return err
 }

@@ -21,32 +21,49 @@ type clusterAuthTokenHandler struct {
 
 // Sync ClusterAuthToken back to Token.
 func (h *clusterAuthTokenHandler) sync(key string, clusterAuthToken *clusterv3.ClusterAuthToken) (runtime.Object, error) {
+	logrus.Warn("ZZZ cluster-auth-token, sync up")
+
 	if clusterAuthToken == nil || clusterAuthToken.DeletionTimestamp != nil {
+		logrus.Warn("ZZZ cluster-auth-token, sync up, missing or in deletion, abort")
+
 		return nil, nil
 	}
 
 	if !clusterAuthToken.Enabled ||
 		isExpired(clusterAuthToken) ||
 		clusterAuthToken.LastUsedAt == nil {
+		logrus.Warnf("ZZZ cluster-auth-token [%s], sync up, disabled, or expired, or no last-used, ignore",
+			clusterAuthToken.Name)
+
 		return clusterAuthToken, nil // Nothing to do.
 	}
 
 	tokenName := clusterAuthToken.Name
 	token, err := h.tokenCache.Get(tokenName)
+
+	logrus.Warnf("ZZZ cluster-auth-token [%s], sync up, check high", tokenName)
+
 	if err != nil {
 		if apierrors.IsNotFound(err) || apierrors.IsGone(err) {
+			logrus.Warnf("ZZZ cluster-auth-token [%s], sync up, orphaned, abort", tokenName)
 			return clusterAuthToken, nil // ClusterAuthToken was orphaned.
 		}
+
+		logrus.Warnf("ZZZ cluster-auth-token [%s], sync up, error %v", tokenName, err)
 		return nil, fmt.Errorf("error getting token %s: %w", tokenName, err)
 	}
 
 	if token.LastUsedAt != nil && token.LastUsedAt.After(clusterAuthToken.LastUsedAt.Time) {
+		logrus.Warnf("ZZZ cluster-auth-token [%s], sync up, no change, ignore", tokenName)
 		return clusterAuthToken, nil // Nothing to do.
 	}
 
 	if tokens.IsExpired(*token) {
+		logrus.Warnf("ZZZ cluster-auth-token [%s], sync up, expired, ignore", tokenName)
 		return clusterAuthToken, nil // Should not update expired token.
 	}
+
+	logrus.Warnf("ZZZ cluster-auth-token [%s], sync up, go", tokenName)
 
 	if err := func() error {
 		patch, err := json.Marshal([]struct {
