@@ -10,9 +10,11 @@ COPY --from=final / /chroot/
 RUN zypper refresh && \
     zypper --installroot /chroot -n in --no-recommends \
     git-core curl util-linux ca-certificates ca-certificates-mozilla unzip xz gzip sed tar shadow gawk vim-small \
-    netcat-openbsd mkisofs openssh-clients openssl patterns-base-fips && \
-    zypper --installroot /chroot clean -a && \
-    rm -rf /chroot/var/cache/zypp/* /chroot/var/log/zypp/* /chroot/tmp/* /chroot/var/tmp/* /chroot/usr/share/doc/packages/*
+    netcat-openbsd mkisofs openssh-clients openssl patterns-base-fips 
+
+RUN zypper --non-interactive ar https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo && \
+    zypper --non-interactive refresh && \
+    zypper --non-interactive install -y pciutils nvidia-container-toolkit nvidia-container-runtime libnvidia-container-tools
 
 # Main stage using bci-micro as the base image
 FROM final AS base
